@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Talent Desk Panic</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: radial-gradient(circle at top, #24243e, #0f0f1a 55%, #050507);
+    color: white;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .wrap {
+    max-width: 1200px;
+    margin: auto;
+    padding: 24px;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(30px, 5vw, 64px);
+    letter-spacing: -2px;
+  }
+
+  .tag {
+    color: #b8b8d8;
+    margin-top: 8px;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(90px, 1fr));
+    gap: 10px;
+    min-width: 420px;
+  }
+
+  .stat {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 14px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .stat b {
+    display: block;
+    font-size: 24px;
+  }
+
+  .game {
+    display: grid;
+    grid-template-columns: 1.2fr .8fr;
+    gap: 20px;
+  }
+
+  .panel {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 22px;
+    padding: 18px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.35);
+  }
+
+  .desk {
+    min-height: 520px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card {
+    background: linear-gradient(145deg, #ffffff, #e9e9ff);
+    color: #151525;
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 14px;
+    cursor: grab;
+    user-select: none;
+    box-shadow: 0 14px 30px rgba(0,0,0,.25);
+    border-left: 8px solid #7c5cff;
+    animation: drop .25s ease;
+  }
+
+  @keyframes drop {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .card h3 {
+    margin: 0 0 6px;
+    font-size: 21px;
+  }
+
+  .card p {
+    margin: 4px 0;
+    color: #444;
+  }
+
+  .urgency {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: #111;
+    color: white;
+    font-size: 12px;
+  }
+
+  .zones {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  .zone {
+    min-height: 130px;
+    border: 2px dashed rgba(255,255,255,.28);
+    border-radius: 18px;
+    padding: 16px;
+    text-align: center;
+    transition: .2s;
+  }
+
+  .zone:hover, .zone.active {
+    background: rgba(255,255,255,.13);
+    transform: translateY(-2px);
+  }
+
+  .zone strong {
+    display: block;
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .zone span {
+    color: #b8b8d8;
+    font-size: 14px;
+  }
+
+  button {
+    border: 0;
+    border-radius: 999px;
+    padding: 13px 18px;
+    font-weight: bold;
+    cursor: pointer;
+    background: #7c5cff;
+    color: white;
+    margin: 6px 6px 0 0;
+  }
+
+  button.secondary {
+    background: rgba(255,255,255,.14);
+  }
+
+  .log {
+    height: 230px;
+    overflow-y: auto;
+    font-size: 14px;
+    color: #d5d5ef;
+    line-height: 1.45;
+    padding-right: 6px;
+  }
+
+  .bar {
+    height: 14px;
+    background: rgba(255,255,255,.12);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 10px;
+  }
+
+  .fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #49e68b, #ffe36e, #ff4d6d);
+    transition: width .2s;
+  }
+
+  .final {
+    display: none;
+    text-align: center;
+    padding: 30px;
+  }
+
+  .final h2 {
+    font-size: 42px;
+    margin-bottom: 10px;
+  }
+
+  @media (max-width: 850px) {
+    header, .game {
+      display: block;
+    }
+
+    .stats {
+      min-width: 0;
+      margin-top: 18px;
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .zones {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Talent Desk Panic</h1>
+      <div class="tag">Drag each incoming entertainment task to the correct department before the agency melts down.</div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b id="score">0</b>Score</div>
+      <div class="stat"><b id="combo">1x</b>Combo</div>
+      <div class="stat"><b id="time">90</b>Seconds</div>
+      <div class="stat"><b id="misses">0</b>Errors</div>
+    </div>
+  </header>
+
+  <div class="game" id="game">
+    <section class="panel desk">
+      <h2>Incoming Desk</h2>
+      <p class="tag">Sort fast. Casting directors are impatient, clients are dramatic, and somehow the printer is still involved.</p>
+      <div class="bar"><div class="fill" id="heat"></div></div>
+      <div id="cards"></div>
+    </section>
+
+    <aside class="panel">
+      <h2>Departments</h2>
+      <div class="zones">
+        <div class="zone" data-type="project"><strong>Projects</strong><span>Films, TV, theater, commercials</span></div>
+        <div class="zone" data-type="submission"><strong>Submissions</strong><span>Send talent to casting</span></div>
+        <div class="zone" data-type="appointment"><strong>Appointments</strong><span>Auditions, callbacks, fittings</span></div>
+        <div class="zone" data-type="followup"><strong>Follow-Ups</strong><span>Calls, reminders, nudges</span></div>
+        <div class="zone" data-type="client"><strong>Clients</strong><span>Talent profiles and notes</span></div>
+        <div class="zone" data-type="booking"><strong>Bookings</strong><span>Deals, holds, confirmed work</span></div>
+      </div>
+
+      <button onclick="startGame()">Start / Restart</button>
+      <button class="secondary" onclick="spawnCard()">Add Chaos</button>
+
+      <h2>Agency Log</h2>
+      <div class="log" id="log"></div>
+    </aside>
+  </div>
+
+  <div class="panel final" id="final">
+    <h2 id="finalTitle"></h2>
+    <p id="finalText"></p>
+    <button onclick="startGame()">Play Again</button>
+  </div>
+</div>
+
+<script>
+const tasks = [
+  { type:"project", title:"New Feature Film", text:"Add project: psychological thriller, shooting in Atlanta.", urgency:"Development"},
+  { type:"project", title:"Commercial Campaign", text:"Create campaign grid for national insurance spot.", urgency:"Rush"},
+  { type:"submission", title:"Submit Ava Reyes", text:"Role: sharp trial attorney, age 35-45, recurring guest star.", urgency:"Due Today"},
+  { type:"submission", title:"Submission Letter", text:"Package three clients for producer review with notes.", urgency:"Hot"},
+  { type:"appointment", title:"Callback at 3:40 PM", text:"Client needs sides, parking note, and Zoom backup.", urgency:"Callback"},
+  { type:"appointment", title:"Fitting Hold", text:"Wardrobe fitting tomorrow morning. Confirm availability.", urgency:"Fitting"},
+  { type:"followup", title:"Casting Follow-Up", text:"Producer has not responded after yesterday’s submission.", urgency:"Nudge"},
+  { type:"followup", title:"Client Reminder", text:"Self-tape deadline is tonight. Client forgot. Naturally.", urgency:"Panic"},
+  { type:"client", title:"Update Client Profile", text:"New headshots, reel link, passport, union status.", urgency:"Admin"},
+  { type:"client", title:"Talent Note", text:"Client is unavailable next week due to stage booking.", urgency:"Note"},
+  { type:"booking", title:"Book Guest Star", text:"Confirm rate, dates, billing, and contract status.", urgency:"Deal"},
+  { type:"booking", title:"First Refusal Hold", text:"Network wants client held pending final approval.", urgency:"Hold"}
+];
+
+let score = 0;
+let combo = 1;
+let misses = 0;
+let time = 90;
+let running = false;
+let timer;
+let spawnTimer;
+let dragged = null;
+
+const cards = document.getElementById("cards");
+const log = document.getElementById("log");
+
+function startGame() {
+  score = 0;
+  combo = 1;
+  misses = 0;
+  time = 90;
+  running = true;
+  cards.innerHTML = "";
+  log.innerHTML = "";
+  document.getElementById("game").style.display = "grid";
+  document.getElementById("final").style.display = "none";
+  updateUI();
+  addLog("Agency opened. Everyone is already late.");
+
+  clearInterval(timer);
+  clearInterval(spawnTimer);
+
+  timer = setInterval(() => {
+    time--;
+    updateUI();
+    if (time <= 0 || misses >= 7) endGame();
+  }, 1000);
+
+  spawnTimer = setInterval(spawnCard, 2600);
+
+  for (let i = 0; i < 4; i++) spawnCard();
+}
+
+function spawnCard() {
+  if (!running) return;
+  if (cards.children.length >= 8) {
+    misses++;
+    combo = 1;
+    addLog("Inbox overflow. A task fell into the abyss, where all bad databases go.");
+    updateUI();
+    return;
+  }
+
+  const task = tasks[Math.floor(Math.random() * tasks.length)];
+  const card = document.createElement("div");
+  card.className = "card";
+  card.draggable = true;
+  card.dataset.type = task.type;
+  card.innerHTML = `
+    <h3>${task.title}</h3>
+    <p>${task.text}</p>
+    <span class="urgency">${task.urgency}</span>
+  `;
+
+  card.addEventListener("dragstart", e => {
+    dragged = card;
+    setTimeout(() => card.style.opacity = ".45", 0);
+  });
+
+  card.addEventListener("dragend", e => {
+    card.style.opacity = "1";
+  });
+
+  cards.prepend(card);
+}
+
+document.querySelectorAll(".zone").forEach(zone => {
+  zone.addEventListener("dragover", e => {
+    e.preventDefault();
+    zone.classList.add("active");
+  });
+
+  zone.addEventListener("dragleave", () => zone.classList.remove("active"));
+
+  zone.addEventListener("drop", e => {
+    e.preventDefault();
+    zone.classList.remove("active");
+
+    if (!dragged) return;
+
+    if (dragged.dataset.type === zone.dataset.type) {
+      score += 100 * combo;
+      combo++;
+      addLog("Correct: " + dragged.querySelector("h3").textContent + " routed to " + zone.querySelector("strong").textContent + ".");
+      dragged.remove();
+    } else {
+      misses++;
+      combo = 1;
+      addLog("Wrong department. Somewhere, an assistant just created a spreadsheet to fix your mistake.");
+      dragged.remove();
+    }
+
+    dragged = null;
+    updateUI();
+  });
+});
+
+function updateUI() {
+  document.getElementById("score").textContent = score;
+  document.getElementById("combo").textContent = combo + "x";
+  document.getElementById("time").textContent = time;
+  document.getElementById("misses").textContent = misses;
+  document.getElementById("heat").style.width = Math.max(0, (time / 90) * 100) + "%";
+}
+
+function addLog(message) {
+  const line = document.createElement("div");
+  line.textContent = "• " + message;
+  log.prepend(line);
+}
+
+function endGame() {
+  running = false;
+  clearInterval(timer);
+  clearInterval(spawnTimer);
+
+  let title = "Desk Closed";
+  let text = "";
+
+  if (score >= 4000) {
+    title = "Power Agent";
+    text = "You kept projects, submissions, appointments, follow-ups, clients, and bookings alive. Disgustingly competent.";
+  } else if (score >= 2200) {
+    title = "Solid Coordinator";
+    text = "You survived the desk. Not elegant, but neither is Hollywood administration.";
+  } else {
+    title = "Development Intern Energy";
+    text = "The agency has entered witness protection. Try sorting faster.";
+  }
+
+  document.getElementById("finalTitle").textContent = title;
+  document.getElementById("finalText").textContent = text + " Final score: " + score + ". Errors: " + misses + ".";
+  document.getElementById("game").style.display = "none";
+  document.getElementById("final").style.display = "block";
+}
+
+startGame();
+</script>
+</body>
+</html>
