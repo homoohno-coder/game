@@ -3,37 +3,55 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ping Radar</title>
+<title>Swipe Grid</title>
 
 <style>
 body {
   margin:0;
   font-family:Arial, sans-serif;
-  background:#0a0a0f;
+  background:#0b0b10;
   color:white;
-  overflow:hidden;
 }
 
-#hud {
-  position:absolute;
-  top:10px;
-  left:10px;
-  z-index:10;
+header {
+  padding:12px;
+  display:flex;
+  justify-content:space-between;
   font-size:14px;
 }
 
-#hud div {
-  margin-bottom:6px;
+#grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(110px,1fr));
+  gap:10px;
+  padding:10px;
 }
 
-canvas {
-  display:block;
+.card {
+  background:#1a1a24;
+  border-radius:14px;
+  padding:10px;
+  cursor:pointer;
+  transition:.2s;
+  border:1px solid rgba(255,255,255,.1);
 }
+
+.card:hover {
+  transform:scale(1.05);
+}
+
+.tag {
+  font-size:11px;
+  margin-top:6px;
+  opacity:.7;
+}
+
+.good { border-left:4px solid #49e68b; }
+.bad { border-left:4px solid #ff4d6d; }
+.meh { border-left:4px solid #ffd166; }
 
 button {
-  position:absolute;
-  bottom:20px;
-  left:20px;
+  margin:10px;
   padding:10px 16px;
   border-radius:999px;
   border:none;
@@ -47,144 +65,95 @@ button {
 
 <body>
 
-<div id="hud">
+<header>
   <div>Score: <span id="score">0</span></div>
-  <div>Missed: <span id="miss">0</span></div>
+  <div>Ghosted: <span id="ghost">0</span></div>
   <div>Time: <span id="time">60</span></div>
-</div>
+</header>
 
 <button onclick="startGame()">Start</button>
 
-<canvas id="game"></canvas>
+<div id="grid"></div>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const grid = document.getElementById("grid");
 
-let W,H;
-function resize(){
-  W = canvas.width = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-}
-resize();
-window.onresize = resize;
+let score=0, ghost=0, time=60, running=false;
 
-let player = {x:0,y:0};
-let pings = [];
-let score=0, miss=0, time=60;
-let running=false;
+const pool = [
+  {type:"good", text:"Interesting bio, responsive"},
+  {type:"good", text:"Clear pics, direct"},
+  {type:"meh", text:"One photo, vague"},
+  {type:"meh", text:"Online but slow replies"},
+  {type:"bad", text:"No pic, asks 'host?' immediately"},
+  {type:"bad", text:"Ghosts after 2 messages"},
+];
 
 function startGame(){
   score=0;
-  miss=0;
+  ghost=0;
   time=60;
-  pings=[];
   running=true;
+  grid.innerHTML="";
   spawnLoop();
   timerLoop();
 }
 
-canvas.addEventListener("mousemove", e=>{
-  player.x = e.clientX;
-  player.y = e.clientY;
-});
-
-canvas.addEventListener("click", ()=>{
-  if(!running) return;
-
-  pings.forEach(p=>{
-    let d = Math.hypot(player.x-p.x, player.y-p.y);
-    if(d < p.r){
-      score += p.value;
-      p.hit = true;
-    }
-  });
-});
-
 function spawnLoop(){
   if(!running) return;
 
-  pings.push({
-    x:Math.random()*W,
-    y:Math.random()*H,
-    r:30 + Math.random()*20,
-    life:100,
-    value: Math.random() > .5 ? 150 : 50,
-    hit:false
-  });
+  let p = pool[Math.floor(Math.random()*pool.length)];
 
-  setTimeout(spawnLoop, 1200);
+  let card = document.createElement("div");
+  card.className = "card " + p.type;
+  card.innerHTML = `
+    <b>${p.type.toUpperCase()}</b>
+    <div class="tag">${p.text}</div>
+  `;
+
+  card.onclick = ()=>{
+    if(!running) return;
+
+    if(p.type==="good"){
+      score+=200;
+    } else if(p.type==="meh"){
+      score+=50;
+    } else {
+      ghost++;
+    }
+
+    card.remove();
+    updateUI();
+  };
+
+  grid.prepend(card);
+
+  if(grid.children.length > 20){
+    ghost++;
+    grid.lastChild.remove();
+  }
+
+  setTimeout(spawnLoop, 900);
 }
 
 function timerLoop(){
   let t = setInterval(()=>{
     if(!running) return clearInterval(t);
     time--;
+    updateUI();
+
     if(time<=0){
       running=false;
-      alert("Game Over. Score: "+score);
+      alert("Game Over. Score: "+score+" | Ghosted: "+ghost);
     }
   },1000);
 }
 
-function update(){
-  if(!running) return;
-
-  pings.forEach(p=>{
-    p.life--;
-    if(p.life<=0 && !p.hit){
-      miss++;
-      p.dead=true;
-    }
-  });
-
-  pings = pings.filter(p=>!p.dead && !p.hit);
-}
-
-function draw(){
-  ctx.clearRect(0,0,W,H);
-
-  // grid
-  ctx.strokeStyle="rgba(255,255,255,0.05)";
-  for(let i=0;i<W;i+=60){
-    ctx.beginPath();
-    ctx.moveTo(i,0);
-    ctx.lineTo(i,H);
-    ctx.stroke();
-  }
-  for(let j=0;j<H;j+=60){
-    ctx.beginPath();
-    ctx.moveTo(0,j);
-    ctx.lineTo(W,j);
-    ctx.stroke();
-  }
-
-  // player
-  ctx.beginPath();
-  ctx.arc(player.x, player.y, 10, 0, Math.PI*2);
-  ctx.fillStyle="#4cafef";
-  ctx.fill();
-
-  // pings
-  pings.forEach(p=>{
-    ctx.beginPath();
-    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-    ctx.strokeStyle = p.value>100 ? "#ff4d6d" : "#49e68b";
-    ctx.lineWidth=2;
-    ctx.stroke();
-  });
-
+function updateUI(){
   document.getElementById("score").textContent = score;
-  document.getElementById("miss").textContent = miss;
+  document.getElementById("ghost").textContent = ghost;
   document.getElementById("time").textContent = time;
 }
-
-function loop(){
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
-loop();
 </script>
 
 </body>
